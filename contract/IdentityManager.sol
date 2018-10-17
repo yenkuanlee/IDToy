@@ -7,6 +7,13 @@ contract IdentityManager {
         string ObjectKey;
     }
 
+    struct Claim{
+        address Issuer;
+        address Subject;
+        string Key;
+        string Value;
+    }
+
     function IdentityManager() public{
     }
 
@@ -24,6 +31,7 @@ contract IdentityManager {
     mapping(bytes32 => Person) public user;
     mapping(address => string) public UserMapping;
     string[] UserList;
+    mapping(address => Claim[]) public UserClaim;
 
     function EmailInUsed(string email) public returns (bool){
         for(uint i=0;i<UserList.length;i++)
@@ -59,6 +67,19 @@ contract IdentityManager {
 
     function GetUserMapping(address publickey) public returns (string){
         return (UserMapping[publickey]);
+    }
+
+    function MakeClaim(address subject, string key, string value){
+        Claim newClaim;
+        newClaim.Issuer = msg.sender;
+        newClaim.Subject = subject;
+        newClaim.Key = key;
+        newClaim.Value = value;
+        UserClaim[msg.sender].push(newClaim);
+    }
+
+    function GetUserClaim(address issuer, uint index)public returns (address,address,string,string){
+        return (UserClaim[issuer][index].Issuer,UserClaim[issuer][index].Subject,UserClaim[issuer][index].Key,UserClaim[issuer][index].Value);
     }
 
 }

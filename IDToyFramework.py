@@ -94,3 +94,5 @@ class IDToyFramework:
         unicorn_txn = self.contract_instance.functions.SetUserInfo(account,objectkey).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
+
+    def MakeClaim(self)
