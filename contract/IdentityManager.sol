@@ -3,40 +3,32 @@ pragma solidity ^0.4.0;
 contract IdentityManager {
 
     struct Person {
-	address Ehash;
-	string StudentID;
-        string tag;
-	string role;
+	address PublicKey;
+        string ObjectKey;
     }
 
     function IdentityManager() public{
     }
 
-    mapping(bytes24 => Person) public user;
-    mapping(address => bytes24) public UserMapping;
+    mapping(bytes32 => Person) public user;
+    mapping(address => string) public UserMapping;
     
-    function setNode(bytes24 Email, address e, string s, string t, string r){
-	user[Email].Ehash = e;
-	user[Email].StudentID = s;
-	user[Email].tag = t;
-	user[Email].role = r;
-        UserMapping[e] = Email;
+    function register(bytes32 account, address publickey, string objectkey, string email){
+	user[account].PublicKey = publickey;
+	user[account].ObjectKey = objectkey;
+        UserMapping[publickey] = email;
     }
 
-    function setTag(bytes24 Email, string t){
-        user[Email].tag = t;
+    function GetUserInfo(bytes32 account) public returns (string) {
+	return user[account].ObjectKey;
     }
 
-    function GetEhash(bytes24 person) constant returns (address) {
-        return user[person].Ehash;
+    function SetUserInfo(bytes32 account, string new_objectkey){
+        user[account].ObjectKey = new_objectkey;
     }
 
-    function GetInfo(bytes24 email) public returns (address,string,string,string) {
-	return (user[email].Ehash,user[email].StudentID,user[email].tag,user[email].role);
-    }
-
-    function GetUserMapping(address Ehash) public returns (bytes24){
-        return (UserMapping[Ehash]);
+    function GetUserMapping(address publickey) public returns (string){
+        return (UserMapping[publickey]);
     }
 
 }
