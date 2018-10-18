@@ -28,8 +28,19 @@ contract IdentityManager {
         return true;
     }
 
+    function stringToBytes32(string memory source) returns (bytes32 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
     mapping(bytes32 => Person) public user;
     mapping(address => string) public UserMapping;
+    mapping(bytes32 => address) public EmailMapping;
     string[] UserList;
     
     mapping(address => Claim[]) public UserClaim;
@@ -57,6 +68,7 @@ contract IdentityManager {
 	user[account].PublicKey = publickey;
 	user[account].ObjectKey = objectkey;
         UserMapping[publickey] = email;
+        EmailMapping[stringToBytes32(email)] = publickey;
         UserList.push(email);
     }
 
@@ -69,7 +81,11 @@ contract IdentityManager {
     }
 
     function GetUserMapping(address publickey) public returns (string){
-        return (UserMapping[publickey]);
+        return UserMapping[publickey];
+    }
+
+    function GetEmailMapping(string email) public returns (address){
+        return EmailMapping[stringToBytes32(email)];
     }
 
     function MakeClaim(address subject, string key, string value){

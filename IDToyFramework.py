@@ -58,6 +58,8 @@ class IDToyFramework:
         account = m.hexdigest()
         account = self.w3.toBytes(text=account)
         return account
+    def GetEmailMapping(self,email):
+        return self.contract_instance.functions.GetEmailMapping(email).call()
 
     #def Register(self,account,publickey,objectkey,email):
     def Register(self,email,passwd,UTC,name,description,country):
@@ -154,6 +156,7 @@ class IDToyFramework:
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
     def GetUserAllowance(self,owner):
+        ## Have to set Trigger User
         owner = self.w3.toChecksumAddress(owner)
         result = self.contract_instance.functions.GetUserAllowance(owner).call()
         return json.dumps({"ApprovedFrom":owner, "Content": self.api.object_get(result)['Data']})
@@ -185,3 +188,21 @@ class IDToyFramework:
                 UTC = self.api.object_get(x['Hash'])['Data']
                 break
         return self.Kdecode(UTCpasswd,UTC)
+
+    ###############################################################################
+
+    def sendEther(self,passwd,UTC,receiver_email,_value):
+        sender = json.loads(UTC)['address']
+        sender = self.w3.toChecksumAddress(sender)
+        private_key = self.w3.eth.account.decrypt(UTC, passwd)
+        signed_txn = self.w3.eth.account.signTransaction(dict(
+            nonce = self.w3.eth.getTransactionCount(sender),
+            gasPrice = self.w3.eth.gasPrice,
+            gas=100000,
+            to = self.w3.toChecksumAddress(self.GetEmailMapping(receiver_email)),
+            value = _value,
+            data=b'',
+        ),
+            private_key,
+        )
+        return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
