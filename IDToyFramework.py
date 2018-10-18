@@ -1,3 +1,4 @@
+import base64
 import datetime
 import hashlib
 import io
@@ -31,6 +32,22 @@ class IDToyFramework:
         self.contract_instance = self.w3.eth.contract(abi=self.abi, address=contract_address)
         self.NameHash = self.api.object_put(io.BytesIO(json.dumps({"Data":"Name"}).encode()))['Hash']
 
+    def Kencode(self,key, clear):
+        enc = []
+        for i in range(len(clear)):
+            key_c = key[i % len(key)]
+            enc_c = chr((ord(clear[i]) + ord(key_c)) % 256)
+            enc.append(enc_c)
+        return base64.urlsafe_b64encode("".join(enc).encode()).decode()
+    def Kdecode(self,key, enc):
+        dec = []
+        enc = base64.urlsafe_b64decode(enc).decode()
+        for i in range(len(enc)):
+            key_c = key[i % len(key)]
+            dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
+            dec.append(dec_c)
+        return "".join(dec)
+
     def EmailInUsed(self,email):
         return self.contract_instance.functions.EmailInUsed(email).call()
     def AddressInUsed(self,address):
@@ -58,10 +75,12 @@ class IDToyFramework:
         objectkey = self.api.object_patch_add_link(objectkey,'Name',NameKey)['Hash']
         objectkey = self.api.object_patch_add_link(objectkey,'Country',CountryKey)['Hash']
         objectkey = self.api.object_patch_add_link(objectkey,'Description',DescriptionKey)['Hash']
+        #objcetkey = self.Kencode(passwd,objectkey)
+
         account = self.GetAccount(email,passwd)
         private_key = self.w3.eth.account.decrypt(UTC, passwd)
 
-        unicorn_txn = self.contract_instance.functions.register(account,publickey,objectkey,email).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        unicorn_txn = self.contract_instance.functions.register(account,publickey,self.Kencode(passwd,objectkey),email).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
@@ -70,6 +89,7 @@ class IDToyFramework:
             return json.dumps({"status":"EmailNotExistedException"})
         account = self.GetAccount(email,passwd)
         objectkey = self.contract_instance.functions.GetUserInfo(account).call()
+        objectkey = self.Kdecode(passwd,objectkey)
         results = self.api.object_get(objectkey)['Links']
         Odict = dict()
         for x in results:
@@ -83,16 +103,85 @@ class IDToyFramework:
 
     def SetUserInfo(self,email,passwd,UTC,target,value):
         account = self.GetAccount(email,passwd)
-        ValueKey = NameKey = self.api.object_put(io.BytesIO(json.dumps({"Data":value}).encode()))['Hash']
+        ValueKey = self.api.object_put(io.BytesIO(json.dumps({"Data":value}).encode()))['Hash']
         objectkey = self.contract_instance.functions.GetUserInfo(account).call()
+        objectkey = self.Kdecode(passwd,objectkey)
         objectkey = self.api.object_patch_rm_link(objectkey,target)['Hash']
         objectkey = self.api.object_patch_add_link(objectkey,target,ValueKey)['Hash']
 
         publickey = json.loads(UTC)['address']
         publickey = self.w3.toChecksumAddress(publickey)
         private_key = self.w3.eth.account.decrypt(UTC, passwd)
-        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,objectkey).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,self.Kencode(passwd,objectkey)).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
-    def MakeClaim(self)
+    def MakeClaim(self,email,passwd,UTC,subject,key,value):
+        account = self.GetAccount(email,passwd)
+        publickey = json.loads(UTC)['address']
+        publickey = self.w3.toChecksumAddress(publickey)
+        private_key = self.w3.eth.account.decrypt(UTC, passwd)
+        try:
+            subject = self.w3.toChecksumAddress(subject)
+        except:
+            subject = publickey
+        unicorn_txn = self.contract_instance.functions.MakeClaim(subject,key,value).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
+        return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
+
+    def GetUserClaim(self,issuer,index):
+        Odict = dict()
+        try:
+            issuer = self.w3.toChecksumAddress(issuer)
+            result = self.contract_instance.functions.GetUserClaim(issuer,index).call()
+            Odict['issuer'] = result[0]
+            Odict['subject'] = result[1]
+            Odict['key'] = result[2]
+            Odict['value'] = result[3]
+        except Exception as e:
+            return json.dumps({"result":"GetUserClaimException", "log":str(e)})
+        return json.dumps(Odict)
+
+    def Approve(self,email,passwd,UTC,_to,_data):
+        account = self.GetAccount(email,passwd)
+        publickey = json.loads(UTC)['address']
+        publickey = self.w3.toChecksumAddress(publickey)
+        private_key = self.w3.eth.account.decrypt(UTC, passwd)
+        _to = self.w3.toChecksumAddress(_to)
+        DataKey = self.api.object_put(io.BytesIO(json.dumps({"Data":_data}).encode()))['Hash']
+        unicorn_txn = self.contract_instance.functions.approve(_to,DataKey).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
+        return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
+
+    def GetUserAllowance(self,owner):
+        owner = self.w3.toChecksumAddress(owner)
+        result = self.contract_instance.functions.GetUserAllowance(owner).call()
+        return json.dumps({"ApprovedFrom":owner, "Content": self.api.object_get(result)['Data']})
+
+    def KeepUTC(self,email,passwd,UTC,UTCpasswd):
+        if not self.EmailInUsed(email):
+            return json.dumps({"status":"EmailNotExistedException"})
+        account = self.GetAccount(email,passwd)
+        publickey = json.loads(UTC)['address']
+        publickey = self.w3.toChecksumAddress(publickey)
+        private_key = self.w3.eth.account.decrypt(UTC, passwd)
+        objectkey = self.contract_instance.functions.GetUserInfo(account).call()
+        objectkey = self.Kdecode(passwd,objectkey)
+        UTCKey = self.api.object_put(io.BytesIO(json.dumps({"Data":self.Kencode(UTCpasswd,UTC)}).encode()))['Hash']
+        objectkey = self.api.object_patch_add_link(objectkey,"UTCBox",UTCKey)['Hash']
+        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,self.Kencode(passwd,objectkey)).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
+        return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
+
+    def ReceiveUTC(self,email,passwd,UTCpasswd):
+        if not self.EmailInUsed(email):
+            return json.dumps({"status":"EmailNotExistedException"})
+        account = self.GetAccount(email,passwd)
+        objectkey = self.contract_instance.functions.GetUserInfo(account).call()
+        objectkey = self.Kdecode(passwd,objectkey)
+        results = self.api.object_get(objectkey)['Links']
+        for x in results:
+            if x['Name'] == 'UTCBox':
+                UTC = self.api.object_get(x['Hash'])['Data']
+                break
+        return self.Kdecode(UTCpasswd,UTC)

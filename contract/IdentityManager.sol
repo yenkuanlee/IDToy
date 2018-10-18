@@ -31,7 +31,10 @@ contract IdentityManager {
     mapping(bytes32 => Person) public user;
     mapping(address => string) public UserMapping;
     string[] UserList;
+    
     mapping(address => Claim[]) public UserClaim;
+    
+    mapping(address => mapping (address => string)) allowed;
 
     function EmailInUsed(string email) public returns (bool){
         for(uint i=0;i<UserList.length;i++)
@@ -80,6 +83,14 @@ contract IdentityManager {
 
     function GetUserClaim(address issuer, uint index)public returns (address,address,string,string){
         return (UserClaim[issuer][index].Issuer,UserClaim[issuer][index].Subject,UserClaim[issuer][index].Key,UserClaim[issuer][index].Value);
+    }
+
+    function approve(address spender, string _data){
+        allowed[msg.sender][spender] = _data;
+    }
+    
+    function GetUserAllowance(address Owner) public constant returns (string){
+        return allowed[Owner][msg.sender];
     }
 
 }
