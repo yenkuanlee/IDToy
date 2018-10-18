@@ -5,6 +5,7 @@ contract IdentityManager {
     struct Person {
 	address PublicKey;
         string ObjectKey;
+        string ShareKey;
     }
 
     struct Claim{
@@ -46,12 +47,16 @@ contract IdentityManager {
     mapping(address => Claim[]) public UserClaim;
     
     mapping(address => mapping (address => string)) allowed;
+    mapping(address => mapping (address => bytes32)) friend;
 
     function EmailInUsed(string email) public returns (bool){
-        for(uint i=0;i<UserList.length;i++)
-            if(stringsEqual(UserList[i],email))
-                return true;
-        return false;
+        //for(uint i=0;i<UserList.length;i++)
+        //    if(stringsEqual(UserList[i],email))
+        //        return true;
+        //return false;
+        if(EmailMapping[stringToBytes32(email)]==address(0))
+            return false;
+        return true;
     }
 
     function AddressInUsed(address publickey) public returns (bool){
@@ -60,13 +65,14 @@ contract IdentityManager {
         return true;
     }
     
-    function register(bytes32 account, address publickey, string objectkey, string email){
+    function register(bytes32 account, address publickey, string objectkey,string sharekey, string email){
         if(EmailInUsed(email))
             return;
         if(AddressInUsed(publickey))
             return;
 	user[account].PublicKey = publickey;
 	user[account].ObjectKey = objectkey;
+        user[account].ShareKey = sharekey;
         UserMapping[publickey] = email;
         EmailMapping[stringToBytes32(email)] = publickey;
         UserList.push(email);
@@ -76,8 +82,13 @@ contract IdentityManager {
 	return user[account].ObjectKey;
     }
 
-    function SetUserInfo(bytes32 account, string new_objectkey){
+    function GetShareInfo(bytes32 account) public returns (string){
+        return user[account].ShareKey;
+    }
+
+    function SetUserInfo(bytes32 account, string new_objectkey, string new_sharekey){
         user[account].ObjectKey = new_objectkey;
+        user[account].ShareKey = new_sharekey;
     }
 
     function GetUserMapping(address publickey) public returns (string){
@@ -107,6 +118,14 @@ contract IdentityManager {
     
     function GetUserAllowance(address Owner) public constant returns (string){
         return allowed[Owner][msg.sender];
+    }
+
+    function BecomeFriend(bytes32 account,address new_friend){
+        friend[new_friend][msg.sender] = account;
+    }
+
+    function GetFriendInfo(address _friend)public returns (string){
+        return user[friend[msg.sender][_friend]].ShareKey;
     }
 
 }

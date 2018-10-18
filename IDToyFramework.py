@@ -62,7 +62,7 @@ class IDToyFramework:
         return self.contract_instance.functions.GetEmailMapping(email).call()
 
     #def Register(self,account,publickey,objectkey,email):
-    def Register(self,email,passwd,UTC,name,description,country):
+    def Register(self,email,passwd,UTC,name,description,secret,country):
         if self.EmailInUsed(email):
             return json.dumps({"status":"EmailInUsedException"})
         publickey = json.loads(UTC)['address']
@@ -74,15 +74,19 @@ class IDToyFramework:
         NameKey = self.api.object_put(io.BytesIO(json.dumps({"Data":name}).encode()))['Hash']
         CountryKey = self.api.object_put(io.BytesIO(json.dumps({"Data":country}).encode()))['Hash']
         DescriptionKey = self.api.object_put(io.BytesIO(json.dumps({"Data":description}).encode()))['Hash']
+        SecretKey = self.api.object_put(io.BytesIO(json.dumps({"Data":secret}).encode()))['Hash']
         objectkey = self.api.object_patch_add_link(objectkey,'Name',NameKey)['Hash']
         objectkey = self.api.object_patch_add_link(objectkey,'Country',CountryKey)['Hash']
         objectkey = self.api.object_patch_add_link(objectkey,'Description',DescriptionKey)['Hash']
+        sharekey = objectkey
+        objectkey = self.api.object_patch_add_link(objectkey,'Secret',SecretKey)['Hash']
+        
         #objcetkey = self.Kencode(passwd,objectkey)
 
         account = self.GetAccount(email,passwd)
         private_key = self.w3.eth.account.decrypt(UTC, passwd)
 
-        unicorn_txn = self.contract_instance.functions.register(account,publickey,self.Kencode(passwd,objectkey),email).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        unicorn_txn = self.contract_instance.functions.register(account,publickey,self.Kencode(passwd,objectkey),sharekey,email).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
@@ -95,12 +99,9 @@ class IDToyFramework:
         results = self.api.object_get(objectkey)['Links']
         Odict = dict()
         for x in results:
-            if x['Name'] == 'Name':
-                Odict['Name'] = self.api.object_get(x['Hash'])['Data']
-            elif x['Name'] == 'Country':
-                Odict['Country'] = self.api.object_get(x['Hash'])['Data']
-            elif x['Name'] == 'Description':
-                Odict['Description'] = self.api.object_get(x['Hash'])['Data']
+            if x['Name'] == 'UTCBox':
+                continue
+            Odict[x['Name']] = self.api.object_get(x['Hash'])['Data']
         return json.dumps(Odict)
 
     def SetUserInfo(self,email,passwd,UTC,target,value):
@@ -110,11 +111,14 @@ class IDToyFramework:
         objectkey = self.Kdecode(passwd,objectkey)
         objectkey = self.api.object_patch_rm_link(objectkey,target)['Hash']
         objectkey = self.api.object_patch_add_link(objectkey,target,ValueKey)['Hash']
-
+        sharekey = self.contract_instance.functions.GetShareInfo(account).call()
+        if target in {'Name','Country','Description'}: # Some target can be shared
+            sharekey = self.api.object_patch_rm_link(sharekey,target)['Hash']
+            self.api.object_patch_add_link(sharekey,target,ValueKey)['Hash']
         publickey = json.loads(UTC)['address']
         publickey = self.w3.toChecksumAddress(publickey)
         private_key = self.w3.eth.account.decrypt(UTC, passwd)
-        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,self.Kencode(passwd,objectkey)).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,self.Kencode(passwd,objectkey),sharekey).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
@@ -172,7 +176,8 @@ class IDToyFramework:
         objectkey = self.Kdecode(passwd,objectkey)
         UTCKey = self.api.object_put(io.BytesIO(json.dumps({"Data":self.Kencode(UTCpasswd,UTC)}).encode()))['Hash']
         objectkey = self.api.object_patch_add_link(objectkey,"UTCBox",UTCKey)['Hash']
-        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,self.Kencode(passwd,objectkey)).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        sharekey = self.contract_instance.functions.GetShareInfo(account).call()
+        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,self.Kencode(passwd,objectkey),sharekey).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
@@ -206,3 +211,19 @@ class IDToyFramework:
             private_key,
         )
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
+
+    def BecomeFriend(self,email,passwd,UTC,friend_address):
+        account = self.GetAccount(email,passwd)
+        friend_address = self.w3.toChecksumAddress(friend_address)
+        publickey = json.loads(UTC)['address']
+        publickey = self.w3.toChecksumAddress(publickey)
+        private_key = self.w3.eth.account.decrypt(UTC, passwd)
+        unicorn_txn = self.contract_instance.functions.BecomeFriend(account,friend_address).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
+        return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
+
+    def GetFriendInfo(self,friend_address):
+        ## Have to set Trigger User
+        friend_address = self.w3.toChecksumAddress(friend_address)
+        result = self.contract_instance.functions.GetFriendInfo(friend_address).call()
+        return result
