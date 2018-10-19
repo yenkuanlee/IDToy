@@ -72,60 +72,203 @@ def Register(self,email,passwd,UTC,name,description,secret,country)
     - PublicKey ： 用以太錢包address代表
     - ObjectKey ： 將所有使用者資訊帶入ipfs merkle tree, 取得root key再用passwd加密
     - ShareKey ： 可分享給好友的資訊, 帶入ipfs merkle tree取得的root key
-  - 合約中利用mapping(account=>Person)紀錄所有使用者資訊, account透過email及passwd加密
+  - 合約中利用user紀錄所有使用者資訊,其資料結構為mapping(bytes32=>Person), 當中mapping key是透過email及passwd加密
   - 使用者email與PublicKey為一對一對應
+    - 合約會判定重複註冊的情況
+#### 回傳
+  - 執行合約的Transaction ID
 #### 範例
 ```
 # 註冊第一個帳戶
 a.Register(email,passwd,UTC,name,description,secret,country)
 
+執行結果
+0xdd745ea81e3bd82efb8e4b38d4f15ad2d437ebdab6900688ffc38944e974fb2a
+
 # 註冊第二個帳戶
 a.Register(email2,passwd2,UTC2,name2,description2,secret2,country)
+
+執行結果
+0x6f50cda79f38804a2657b0b3fc913c8dcc5fbb546dac17457b04bcb398bf8ae9
 ```
 ### 使用者資訊
+使用者可看到自己的資訊
+```
+# IDToyFramework.GetUserInfo
+def GetUserInfo(self,email,passwd)
+```
+#### 參數
+  - 登入使用者的email與passwd
+#### 智能合約
+  - 將email與passwd加密後送給智能合約, 取得使用者的ObjectKey
+#### 回傳
+  - 將ObjectKey解密, 取得merkle tree上的資訊並結構化, 回傳為json格式
+#### 範例
 ```
 a.GetUserInfo(email,passwd)
+
+執行結果
+{"Name": "\u674e\u5f65\u5bec", "Country": "Taiwan", "Description": "handsome", "Secret": "I am 70 KG."}
 ```
 ### 編輯個人資料
+使用者可修改個人資料
+```
+# IDToyFramework.SetUserInfo
+def SetUserInfo(self,email,passwd,UTC,target,value)
+```
+#### 參數
+  - email, passwd, UTC為使用者登入資訊
+  - target為使用者可修改資料的欄位, 包含Name, Country, Description, Secret
+  - value為要修改的內容
+#### 智能合約
+  - 取得user ObjectKey, 解密取得meklre tree, 修整枝葉後再將新的ObjectKey存回合約中
+#### 回傳
+  - 執行合約的Transaction ID
+#### 範例
 ```
 a.SetUserInfo(email,passwd,UTC,'Secret','I am 68 KG now.')
+
+執行結果
+0x821240326bfb7c1bdb2634a8eccc1aefe98f164b7b9d4ea1d3409bee395aaed8
+
+a.GetUserInfo(email,passwd)
+
+執行結果
+{"Description": "handsome", "Name": "\u674e\u5f65\u5bec", "Country": "Taiwan", "Secret": "I am 68 KG now."}
 ```
 ### 聲明
+使用者可發表聲明
+```
+# IDToyFramework.MakeClaim
+def MakeClaim(self,email,passwd,UTC,subject,key,value)
+```
+#### 參數
+  - email, passwd, UTC為使用者登入資訊
+  - subject,key,value為聲明相關欄位
+#### 智能合約
+  - 用Claim結構紀錄使用者聲名, 參考ERC780, 共有4個項目
+    - address Issuer ： 發表聲明的人
+    - address Subject ： 與聲明相關的人, 若空值則為聲明人
+    - string Key ： 聲明主題
+    - string Value ： 聲明內容
+  - 使用mapping(address => Claim[]) UserClaim紀錄所有使用者的聲名
+#### 回傳
+  - 執行合約的Transaction ID
+#### 範例
 ```
 a.MakeClaim(email,passwd,UTC,'','Kevin','I am hungry.')
+
+執行結果
+0x7610654d7cf2c0982e2c6be70de7967df02e025015a4c1b65b3f883b1dbc457a
 ```
 ### 聲明資訊
+使用者可察看任何人的聲明資訊
+```
+# IDToyFramework.GetUserClaim
+def GetUserClaim(self,issuer,index)
+```
+#### 參數
+  - issuer為發表聲明人的address
+  - index可當issuer的某個聲明的ID
+#### 智能合約
+  - 從UserClaim中取得使用者聲明4個項目的內容
+#### 回傳
+  - 將合約回傳整理成json格式回傳
+#### 範例
 ```
 a.GetUserClaim(god,0)
+
+執行結果
+{"subject": "0x42946C2Bb22ad422e7366d68d3Ca07fB1862ff36", "key": "Kevin", "value": "I am hungry.", "issuer": "0x42946C2Bb22ad422e7366d68d3Ca07fB1862ff36"}
 ```
 ### 授權
+使用者可對某人授權
+```
+# IDToyFramework.Approve
+def Approve(self,email,passwd,UTC,_to,_data)
+```
+#### 參數
+  - email, passwd, UTC為使用者登入資訊
+  - _to為授權對象
+  - _data為授權內容
+#### 智能合約
+  - 參考ERC20的Approve(token授權), 以及ERC725的Approve
+  - mapping(address => mapping (address => string)) allowed 紀錄, 誰授權給誰麼內容
+  - 授權內容會放在ipfs的一個object node中, 增加彈性
+#### 回傳
+  - 執行合約的Transaction ID
+#### 範例
 ```
 a.Approve(email,passwd,UTC,dog,'go to eat.')
+
+執行結果
+0xd46b5b47af832b67d52a1b2f09203ded3f549ca871c6719571e598293e8032c4
 ```
 ### 授權資訊
+使用可查詢被某人授權的內容
+```
+# # IDToyFramework.GetUserAllowance
+def GetUserAllowance(self,owner)
+```
+#### 參數
+  - owner : 授權人的Address
+#### 智能合約
+  - 從allowed中取得執行合約人被owner授權的_data
+#### 回傳
+  - 透過_data取得merkle tree中的content, 整理成json
+    - ApprovedFrom ： 授權人Address
+    - Content : 授權內容
+#### 範例
 ```
 a.GetUserAllowance(god)
+
+執行結果
+{"ApprovedFrom": "0x42946C2Bb22ad422e7366d68d3Ca07fB1862ff36", "Content": "go to eat."}
 ```
 ### 保存私鑰
+#### 參數
+#### 智能合約
+#### 回傳
+#### 範例
 ```
 a.KeepUTC(email,passwd,UTC,'utcpasswd')
 ```
 ### 恢復私鑰
+#### 參數
+#### 智能合約
+#### 回傳
+#### 範例
 ```
 a.ReceiveUTC(email,passwd,'utcpasswd')
 ```
 ### 付款
+#### 參數
+#### 智能合約
+#### 回傳
+#### 範例
 ```
 a.sendEther(passwd,UTC,'kevin800405@yahoo.com.tw',123)
 ```
 ### 成為好友
+#### 參數
+#### 智能合約
+#### 回傳
+#### 範例
 ```
 a.BecomeFriend(email,passwd,UTC,dog)
 ```
 ### 好友資訊
+#### 參數
+#### 智能合約
+#### 回傳
+#### 範例
 ```
 a.GetFriendInfo(god)
 ```
+### 其他功能
+#### Address查Email
+#### Email查Address
+#### GetAccount
 
 ## 智能合約安全稽核
 
