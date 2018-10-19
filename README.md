@@ -193,7 +193,7 @@ def Approve(self,email,passwd,UTC,_to,_data)
   - _data為授權內容
 #### 智能合約
   - 參考ERC20的Approve(token授權), 以及ERC725的Approve
-  - mapping(address => mapping (address => string)) allowed 紀錄, 誰授權給誰麼內容
+  - mapping(address => mapping (address => string)) allowed 紀錄, 誰授權給誰什麼內容
   - 授權內容會放在ipfs的一個object node中, 增加彈性
 #### 回傳
   - 執行合約的Transaction ID
@@ -207,7 +207,7 @@ a.Approve(email,passwd,UTC,dog,'go to eat.')
 ### 授權資訊
 使用可查詢被某人授權的內容
 ```
-# # IDToyFramework.GetUserAllowance
+# IDToyFramework.GetUserAllowance
 def GetUserAllowance(self,owner)
 ```
 #### 參數
@@ -226,20 +226,43 @@ a.GetUserAllowance(god)
 {"ApprovedFrom": "0x42946C2Bb22ad422e7366d68d3Ca07fB1862ff36", "Content": "go to eat."}
 ```
 ### 保存私鑰
+```
+# IDToyFramework.KeepUTC
+def KeepUTC(self,email,passwd,UTC,UTCpasswd)
+```
 #### 參數
+  - email, passwd, UTC為使用者登入資訊
+  - UTC為要保存的私鑰內容
+  - UTCpasswd為保存私鑰的密碼, 日後想取回私鑰需要這組密碼
 #### 智能合約
+  - 取得使用者的ObjectKey並解密取得merkle tree內容, 將UTC透過UTCpasswd加密後, 插入merkle tree中, 欄位為UTCBox
 #### 回傳
+  - 執行合約的Transaction ID
 #### 範例
 ```
 a.KeepUTC(email,passwd,UTC,'utcpasswd')
+
+執行結果
+0xecbb08d4f0e8ea0d2c9745d12c4e4945da59d5e96219c9bf86ecf6110169e7ee
 ```
 ### 恢復私鑰
+```
+# IDToyFramework.ReceiveUTC
+def ReceiveUTC(self,email,passwd,UTCpasswd)
+```
 #### 參數
+  - email, passwd為使用者登入資訊
+  - UTCpasswd為取回私鑰的密碼
 #### 智能合約
+  - 取得使用者的ObjectKey, 一連串解密後取得UTC內容
 #### 回傳
+  - 私鑰內容
 #### 範例
 ```
 a.ReceiveUTC(email,passwd,'utcpasswd')
+
+執行結果
+{"address":"42946c2bb22ad422e7366d68d3ca07fb1862ff36","crypto":{"cipher":"xxx","ciphertext":"xxx","cipherparams":{"iv":"xxx"},"kdf":"xxx","kdfparams":{"dklen":xxx,"n":xxx,"p":xxx,"r":xxx,"salt":"xxx"},"mac":"xxx"},"id":"xxx","version":xxx}
 ```
 ### 付款
 #### 參數
