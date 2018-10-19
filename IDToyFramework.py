@@ -205,7 +205,7 @@ class IDToyFramework:
             gasPrice = self.w3.eth.gasPrice,
             gas=100000,
             to = self.w3.toChecksumAddress(self.GetEmailMapping(receiver_email)),
-            value = _value,
+            value = self.w3.toWei(_value, "ether"),
             data=b'',
         ),
             private_key,
@@ -225,5 +225,9 @@ class IDToyFramework:
     def GetFriendInfo(self,friend_address):
         ## Have to set Trigger User
         friend_address = self.w3.toChecksumAddress(friend_address)
-        result = self.contract_instance.functions.GetFriendInfo(friend_address).call()
-        return result
+        sharekey = self.contract_instance.functions.GetFriendInfo(friend_address).call()
+        results = self.api.object_get(sharekey)['Links']
+        Odict = dict()
+        for x in results:
+            Odict[x['Name']] = self.api.object_get(x['Hash'])['Data']
+        return json.dumps(Odict)
