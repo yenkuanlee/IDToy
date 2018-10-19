@@ -62,11 +62,11 @@ a = IDToyFramework.IDToyFramework()
 def Register(self,email,passwd,UTC,name,description,secret,country)
 ```
 - 參數
-- 使用email註冊
-- password為以太錢包的密碼
-- UTC為私鑰檔內容, json格式
-- name, description, country為使用者相關資訊, 參考uport欄位
-- secret為使用者叫隱私的資訊, 後續說明
+  - 使用email註冊
+  - password為以太錢包的密碼
+  - UTC為私鑰檔內容, json格式
+  - name, description, country為使用者相關資訊, 參考uport欄位
+  - secret為使用者叫隱私的資訊, 後續說明
 - 智能合約結構
   - 每個使用者資訊存入Person結構, 包含以下項目
     - PublicKey ： 用以太錢包address代表
