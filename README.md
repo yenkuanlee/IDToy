@@ -34,21 +34,21 @@ $ python3 deploy_contract.py
 - 在example.py中導入IDToyFramework, 便可開始使用各項功能, 下一段會針對所有功能進一步解說
 - example.py中的參數可先填入, 以利後續操作, 下一段會詳細說明個參數意義
 ```
-email = 'yenkuanlee@gmail.com'  # 第一個帳戶綁定的email
-passwd = 'password'  # 第一個帳戶的密碼
-UTC = 'UTC file content'  # 第一個帳戶的UTC file內容
-name = '李彥寬'  # 第一個帳戶的使用者名字
-description = 'handsome'  # 第一個帳戶使用者的描述
-secret = 'I am 70 KG.'  # 第一個帳戶使用者的秘密欄位
-country = 'Taiwan'  # 第一個帳戶使用者的國家
+email = 'yenkuanlee@gmail.com'                      # 第一個帳戶綁定的email
+passwd = 'password'                                 # 第一個帳戶的密碼
+UTC = 'UTC file content'                            # 第一個帳戶的UTC file內容
+name = '李彥寬'                                      # 第一個帳戶的使用者名字
+description = 'handsome'                            # 第一個帳戶使用者的描述
+secret = 'I am 70 KG.'                              # 第一個帳戶使用者的秘密欄位
+country = 'Taiwan'                                  # 第一個帳戶使用者的國家
 god = '0x42946c2bb22ad422e7366d68d3ca07fb1862ff36'  # 第一個帳戶的address
 dog = '0xe6ab871f860d9f28764d5d2e0672396a7643710e'  # 第二個帳戶的address
-email2 = 'kevin800405@yahoo.com.tw'  # 第二個帳戶綁定的email
-passwd2 = 'password2'  # 第二個帳戶的密碼
-UTC2 = 'UTC2 file content'  # 第二個帳戶的UTC file內容
-name2 = 'joker'  # 第二個帳戶的使用者名字
-description2 = 'sombody'  # 第二個帳戶使用者的描述
-secret2 = 'Sit down please.' # 第二個帳戶使用者的秘密欄位
+email2 = 'kevin800405@yahoo.com.tw'                 # 第二個帳戶綁定的email
+passwd2 = 'password2'                               # 第二個帳戶的密碼
+UTC2 = 'UTC2 file content'                          # 第二個帳戶的UTC file內容
+name2 = 'joker'                                     # 第二個帳戶的使用者名字
+description2 = 'sombody'                            # 第二個帳戶使用者的描述
+secret2 = 'Sit down please.'                        # 第二個帳戶使用者的秘密欄位
 
 
 import IDToyFramework
@@ -57,6 +57,24 @@ a = IDToyFramework.IDToyFramework()
 
 ## 功能與邏輯解說
 ### 註冊
+```
+# IDToyFramework.Register
+def Register(self,email,passwd,UTC,name,description,secret,country)
+```
+#### 參數
+- 使用email註冊
+- password為以太錢包的密碼
+- UTC為私鑰檔內容, json格式
+- name, description, country為使用者相關資訊, 參考uport欄位
+- secret為使用者叫隱私的資訊, 後續說明
+#### 智能合約結構
+  - 每個使用者資訊存入Person結構, 包含以下項目
+    - PublicKey ： 用以太錢包address代表
+    - ObjectKey ： 將所有使用者資訊帶入ipfs merkle tree, 取得root key再用passwd加密
+    - ShareKey ： 可分享給好友的資訊, 帶入ipfs merkle tree取得的root key
+  - 合約中利用mapping(account=>Person)紀錄所有使用者資訊, account透過email及passwd加密
+  - 使用者email與PublicKey為一對一對應
+#### 範例
 ```
 # 註冊第一個帳戶
 a.Register(email,passwd,UTC,name,description,secret,country)
