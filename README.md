@@ -265,33 +265,82 @@ a.ReceiveUTC(email,passwd,'utcpasswd')
 {"address":"42946c2bb22ad422e7366d68d3ca07fb1862ff36","crypto":{"cipher":"xxx","ciphertext":"xxx","cipherparams":{"iv":"xxx"},"kdf":"xxx","kdfparams":{"dklen":xxx,"n":xxx,"p":xxx,"r":xxx,"salt":"xxx"},"mac":"xxx"},"id":"xxx","version":xxx}
 ```
 ### 付款
+使用者可以支付ether給其他使用者
+```
+# IDToyFramework.sendEther
+def sendEther(self,passwd,UTC,receiver_email,_value)
+```
 - 參數
+  - passwd,UTC為使用者登入資訊
+  - receiver_email為收款人email
+  - _value為轉帳金額, 單位是ether
 - 智能合約
+  - 從合約取得receiver_email的Address, 透過web3轉帳
 - 回傳
+  - 執行合約的Transaction ID
 - 範例
 ```
-a.sendEther(passwd,UTC,'kevin800405@yahoo.com.tw',123)
+a.sendEther(passwd,UTC,'kevin800405@yahoo.com.tw',0.0123)
+
+執行結果
+0x55c13c254a83cdb5331ffa37f466ff4d19c02aa7d91fbe4b30e7529057698734
 ```
 ### 成為好友
+```
+# IDToyFramework.BecomeFriend
+def BecomeFriend(self,email,passwd,UTC,friend_address)
+```
 - 參數
+  - email,passwd,UTC為使用者登入資訊
+  - friend_address 為好友Address
 - 智能合約
+  - 透過mapping(address => mapping (address => bytes32)) friend, 紀錄好友資訊
+  - 其中bytes32代表好友的user account
+  - 如此一來, 就可以取得好友的ShareKey, 看到好友的資訊
 - 回傳
+  - - 執行合約的Transaction ID
 - 範例
 ```
 a.BecomeFriend(email,passwd,UTC,dog)
+
+執行結果
+0x6bda1eb3b2356bb5922aa151a4b39ac4c9d94a2b49de69711d1daa6ccc03f729
 ```
 ### 好友資訊
+取得執行合約人的某位好友資訊
+```
+# IDToyFramework.GetFriendInfo
+def GetFriendInfo(self,friend_address)
+```
 - 參數
+  - friend_address : 朋友的Address
 - 智能合約
+  - 從friend中取得朋友的ShareKey
 - 回傳
+  - 透過sharekey取得merkle tree content, 解析後回傳json
 - 範例
 ```
 a.GetFriendInfo(god)
+
+執行結果
+{"Description": "handsome", "Country": "Taiwan", "Name": "\u674e\u5f65\u5bec"}
 ```
 ### 其他功能
-- Address查Email
-- Email查Address
+- Email與Address是1對1榜定, 可以透過合約互相查詢
+  - Address查Email
+  - Email查Address
 - GetAccount
+  - 若未來以API的形式, GetAccount就像取得API token的感覺
+
+### 優缺點分析
+- 優點
+  - 所有交易或是合約的行為都在local透過私鑰打包raw transaction, 安全性高
+  - ObjectKey, UTCBox等隱私資訊接透過使用者密碼加密, 就算在區塊上找到也沒關係
+  - 參考uport將資訊存入ipfs merkle tree, 並將重要hash加密後上鏈, 解決區塊鏈不利於儲存的議題
+- 缺點
+  - 聲明, 授權內容在本專案只接受文字, 若透過ipfs可接受檔案等其他形式
+  - 查詢某人聲明, 要帶入的index目前無紀錄, 可實作存在鏈外
+  - 本專案加好友通知無實作, 若要實作也應規劃在鏈外
 
 ## 智能合約安全稽核
 
