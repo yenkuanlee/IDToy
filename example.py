@@ -1,5 +1,6 @@
 # coding=utf-8
 import IDToyFramework
+import json
 import sys
 
 email = 'yenkuanlee@gmail.com'
@@ -38,3 +39,8 @@ a = IDToyFramework.IDToyFramework()
 #print(a.sendEther(passwd,UTC,'kevin800405@yahoo.com.tw',123))
 #print(a.BecomeFriend(email,passwd,UTC,dog))
 #print(a.GetFriendInfo(god))
+
+
+#f = open('contract/contract.json','r')
+#Jbi = json.loads(f.readline())['abi']
+#print(a.decode_contract_call(Jbi,sys.argv[1]))

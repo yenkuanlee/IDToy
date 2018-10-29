@@ -231,3 +231,22 @@ class IDToyFramework:
         for x in results:
             Odict[x['Name']] = self.api.object_get(x['Hash'])['Data']
         return json.dumps(Odict)
+
+    def decode_contract_call(self,contract_abi: list, TID: str): 
+        Transaction = self.w3.eth.getTransaction(TID)
+        call_data = str(Transaction.input)
+        call_data_bin = decode_hex(call_data) 
+        method_signature = call_data_bin[:4] 
+        for description in contract_abi: 
+            if description.get('type') != 'function': 
+                continue 
+            method_name = normalize_abi_method_name(description['name']) 
+            arg_types = [item['type'] for item in description['inputs']] 
+            method_id = get_abi_method_id(method_name, arg_types) 
+            if zpad(encode_int(method_id), 4) == method_signature: 
+                try: 
+                    args = decode_abi(arg_types, call_data_bin[4:]) 
+                except AssertionError: 
+                    # Invalid args 
+                    continue 
+                return method_name, args
