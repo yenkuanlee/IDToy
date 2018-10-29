@@ -59,7 +59,10 @@ class IDToyFramework:
         account = self.w3.toBytes(text=account)
         return account
     def GetEmailMapping(self,email):
-        return self.contract_instance.functions.GetEmailMapping(email).call()
+        result = self.contract_instance.functions.GetEmailMapping(email).call()
+        if result=='0x0000000000000000000000000000000000000000':
+            return 'NoMapping'
+        return result
 
     #def Register(self,account,publickey,objectkey,email):
     def Register(self,email,passwd,UTC,name,description,secret,country):
@@ -138,6 +141,9 @@ class IDToyFramework:
     def GetUserClaim(self,issuer,index):
         Odict = dict()
         try:
+            issuerAddress = self.GetEmailMapping(issuer)
+            if issuerAddress != 'NoMapping': # _to is an email address
+                issuer = issuerAddress
             issuer = self.w3.toChecksumAddress(issuer)
             result = self.contract_instance.functions.GetUserClaim(issuer,index).call()
             Odict['issuer'] = result[0]
@@ -153,16 +159,23 @@ class IDToyFramework:
         publickey = json.loads(UTC)['address']
         publickey = self.w3.toChecksumAddress(publickey)
         private_key = self.w3.eth.account.decrypt(UTC, passwd)
+        toAddress = self.GetEmailMapping(_to)
+        if toAddress != 'NoMapping': # _to is an email address
+            _to = toAddress
         _to = self.w3.toChecksumAddress(_to)
         DataKey = self.api.object_put(io.BytesIO(json.dumps({"Data":_data}).encode()))['Hash']
         unicorn_txn = self.contract_instance.functions.approve(_to,DataKey).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
-    def GetUserAllowance(self,owner):
+    def GetUserAllowance(self,email,owner):
         ## Have to set Trigger User
+        TriggerUser = self.w3.toChecksumAddress(self.GetEmailMapping(email))
+        ownerAddress = self.GetEmailMapping(owner)
+        if ownerAddress != 'NoMapping': # _to is an email address
+            owner = ownerAddress
         owner = self.w3.toChecksumAddress(owner)
-        result = self.contract_instance.functions.GetUserAllowance(owner).call()
+        result = self.contract_instance.functions.GetUserAllowance(owner).call({'from':TriggerUser})
         return json.dumps({"ApprovedFrom":owner, "Content": self.api.object_get(result)['Data']})
 
     def KeepUTC(self,email,passwd,UTC,UTCpasswd):
@@ -200,11 +213,20 @@ class IDToyFramework:
         sender = json.loads(UTC)['address']
         sender = self.w3.toChecksumAddress(sender)
         private_key = self.w3.eth.account.decrypt(UTC, passwd)
+        To = self.GetEmailMapping(receiver_email)
+        if To == 'NoMapping':
+            try:
+                To = self.w3.toChecksumAddress(receiver_email)
+            except:
+                return json.dumps({"status": "ERROR", "log": "No email mapping and not an address."})
+        else:
+            To = self.w3.toChecksumAddress(To)
         signed_txn = self.w3.eth.account.signTransaction(dict(
             nonce = self.w3.eth.getTransactionCount(sender),
             gasPrice = self.w3.eth.gasPrice,
             gas=100000,
-            to = self.w3.toChecksumAddress(self.GetEmailMapping(receiver_email)),
+            #to = self.w3.toChecksumAddress(self.GetEmailMapping(receiver_email)),
+            to = To,
             value = self.w3.toWei(_value, "ether"),
             data=b'',
         ),
@@ -214,6 +236,9 @@ class IDToyFramework:
 
     def BecomeFriend(self,email,passwd,UTC,friend_address):
         account = self.GetAccount(email,passwd)
+        Faddress = self.GetEmailMapping(friend_address)
+        if Faddress != 'NoMapping': # friend_address is an email address
+            friend_address = Faddress
         friend_address = self.w3.toChecksumAddress(friend_address)
         publickey = json.loads(UTC)['address']
         publickey = self.w3.toChecksumAddress(publickey)
@@ -222,10 +247,14 @@ class IDToyFramework:
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
-    def GetFriendInfo(self,friend_address):
+    def GetFriendInfo(self,email,friend_address):
         ## Have to set Trigger User
+        TriggerUser = self.w3.toChecksumAddress(self.GetEmailMapping(email))
+        Faddress = self.GetEmailMapping(friend_address)
+        if Faddress != 'NoMapping': # friend_address is an email address
+            friend_address = Faddress
         friend_address = self.w3.toChecksumAddress(friend_address)
-        sharekey = self.contract_instance.functions.GetFriendInfo(friend_address).call()
+        sharekey = self.contract_instance.functions.GetFriendInfo(friend_address).call({'from':TriggerUser})
         results = self.api.object_get(sharekey)['Links']
         Odict = dict()
         for x in results:
