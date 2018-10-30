@@ -117,7 +117,7 @@ class IDToyFramework:
         sharekey = self.contract_instance.functions.GetShareInfo(account).call()
         if target in {'Name','Country','Description'}: # Some target can be shared
             sharekey = self.api.object_patch_rm_link(sharekey,target)['Hash']
-            self.api.object_patch_add_link(sharekey,target,ValueKey)['Hash']
+            sharekey = self.api.object_patch_add_link(sharekey,target,ValueKey)['Hash']
         publickey = json.loads(UTC)['address']
         publickey = self.w3.toChecksumAddress(publickey)
         private_key = self.w3.eth.account.decrypt(UTC, passwd)
