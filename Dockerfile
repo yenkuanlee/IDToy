@@ -43,7 +43,7 @@ RUN useradd -m localadmin && echo "localadmin:openstack" | chpasswd && adduser l
 USER localadmin
 RUN cd && \
 git clone http://github.com/yenkuanlee/IDToy && \
-cd IDToy && \
+cd IDToy/demo && \
 geth --datadir ./kevin/ init genesis.json && \
 ipfs init
 RUN echo 'export LC_ALL=zh_TW.utf8' >> /home/localadmin/.bashrc
