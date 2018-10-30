@@ -66,6 +66,6 @@ while True:
 
 # GET TEST CODE FROM IPFS
 r = requests.get('https://ipfs.io/ipfs/QmdcgD77hdm2xFymsJtyU7x73bzMnJfq5Y6bRpTasdaSXk')
-fw = open('./test.py','w')
+fw = open('../test.py','w')
 fw.write(r.text)
 fw.close()
