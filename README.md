@@ -8,14 +8,6 @@ Demo: 會員身份 Smart Contract
 2. 對自己寫的 Smart Contract 做安全稽核，有哪些安全漏洞？
 3. 把自己寫的合約 deploy 到 Ethereum 的測試鏈。
 
-## 程式簡介
-- contract/IdentityManager.sol : 智能合約
-- contract/deploy_contract.py : 將合約發布上鏈
-- contract/contract.json : 合約資訊, 包含abi與合約地址
-- IDToyFramework.py : web3程式, 觸發智能合約
-- example.py : 範例程式, 包含各功能執行方式
-
-
 ## 環境
 - 本專案開發環境為Ethereum私有鏈, 共識機制為POA
 - python3.6
@@ -35,6 +27,13 @@ $ cd IDToy/demo
 $ nohup python3 deploy.py &> log.py &
 wait for Ethereum...
 ```
+
+## 程式簡介
+- contract/IdentityManager.sol : 智能合約
+- contract/deploy_contract.py : 將合約發布上鏈
+- contract/contract.json : 合約資訊, 包含abi與合約地址
+- IDToyFramework.py : web3程式, 觸發智能合約
+- example.py : 範例程式, 包含各功能執行方式
 
 ## 使用說明
 ### 發布合約
