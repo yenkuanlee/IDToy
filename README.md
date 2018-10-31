@@ -23,6 +23,19 @@ Demo: 會員身份 Smart Contract
 - solidity 0.4.x
 - ipfs 0.4.x
 
+## Docker
+```
+# Run Docker
+$ docker build -t "idtoy:test" .
+$ docker run -dti --name idhub_demo --network=host idtoy:test /bin/sh
+$ docker exec -ti idhub_demo bash
+
+# Deploy
+$ cd IDToy/demo
+$ nohup python3 deploy.py &> log.py &
+wait for Ethereum...
+```
+
 ## 使用說明
 ### 發布合約
 在contract目錄底下將IdentityManager.sol合約發布上鏈, 同目錄會產生contract.json, 用來記錄合約資訊
