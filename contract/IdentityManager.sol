@@ -87,6 +87,8 @@ contract IdentityManager {
     }
 
     function SetUserInfo(bytes32 account, string new_objectkey, string new_sharekey){
+        if(user[account].PublicKey!=msg.sender)
+            return;
         user[account].ObjectKey = new_objectkey;
         user[account].ShareKey = new_sharekey;
     }
