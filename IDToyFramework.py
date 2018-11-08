@@ -108,6 +108,7 @@ class IDToyFramework:
         return json.dumps(Odict)
 
     def SetUserInfo(self,email,passwd,UTC,target,value):
+        TriggerUser = self.w3.toChecksumAddress(self.GetEmailMapping(email))
         account = self.GetAccount(email,passwd)
         ValueKey = self.api.object_put(io.BytesIO(json.dumps({"Data":value}).encode()))['Hash']
         objectkey = self.contract_instance.functions.GetUserInfo(account).call()
@@ -121,7 +122,7 @@ class IDToyFramework:
         publickey = json.loads(UTC)['address']
         publickey = self.w3.toChecksumAddress(publickey)
         private_key = self.w3.eth.account.decrypt(UTC, passwd)
-        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,self.Kencode(passwd,objectkey),sharekey).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey)})
+        unicorn_txn = self.contract_instance.functions.SetUserInfo(account,self.Kencode(passwd,objectkey),sharekey).buildTransaction({'nonce':self.w3.eth.getTransactionCount(publickey), 'from':TriggerUser})
         signed_txn = self.w3.eth.account.signTransaction(unicorn_txn, private_key=private_key)
         return self.w3.eth.sendRawTransaction(signed_txn.rawTransaction).hex()
 
